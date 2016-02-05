@@ -37,7 +37,7 @@ const uint16_t colors[] = {
 
 
 /////////////////////////////////////////////////////////////////////////////////////
-// Splash and Effects
+// Colors and Effects
 /////////////////////////////////////////////////////////////////////////////////////
 
 #define NUMBEROFCLOCKFACECOLORS 7
@@ -65,19 +65,25 @@ void changeClockFaceColors() {
 
 
 
-void drawSplashScreen() {
+void drawFlasher1() {
   matrix.fillScreen(colors[1]);
   matrix.show();
-  delay(500);
+  delay(100);
   matrix.fillScreen(colors[2]);
   matrix.show();
-  delay(500);
+  delay(100);
   matrix.fillScreen(colors[3]);
   matrix.show();
-  delay(500);
+  delay(100);
   matrix.fillScreen(colors[0]);
   matrix.show();
   delay(10);
+}
+
+void drawFlasher2() {
+  matrix.fillScreen(Wheel(random(0, 255)));
+  matrix.show();
+  delay(100);
 }
 
 // Input a value 0 to 255 to get a color value.
@@ -136,16 +142,55 @@ void drawKSD() {
 
   matrix.fillScreen(0);
 
-  
-  uint16_t color = Wheel(random(0,255));
+
+  uint16_t color = Wheel(random(0, 255));
   for (int i = 0; i < alength; i++) {
 
     matrix.drawPixel(a[i][0], a[i][1], color);
   }
   matrix.show();
-  delay(500);
+  delay(300);
+}
+
+
+void drawNoise() {
+
   matrix.fillScreen(0);
+
+  //uint16_t color = Wheel(random(0, 255));
+  uint16_t color = matrix.Color(255,255,255);
+  for (int i = 0; i < random(5, 50); i++) {
+
+    matrix.drawPixel(random(0, 11), random(0, 10), color);
+  }
   matrix.show();
+  delay(random(10, 500));
+}
+void drawNoise2() {
+
+  matrix.fillScreen(0);
+
+  //uint16_t color = Wheel(random(0, 255));
+  uint16_t color = matrix.Color(255,255,255);
+  for (int i = 0; i < 20; i++) {
+
+    matrix.drawPixel(random(0, 11), random(0, 10), color);
+  }
+  matrix.show();
+  delay(100);
+}
+void drawNoise3() {
+
+  matrix.fillScreen(0);
+
+  //uint16_t color = Wheel(random(0, 255));
+  uint16_t color = matrix.Color(255,255,255);
+  for (int i = 0; i < 80; i++) {
+
+    matrix.drawPixel(random(0, 11), random(0, 10), color);
+  }
+  matrix.show();
+  delay(50);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -155,7 +200,6 @@ enum State {
   START,
   RUN_CLOCK,
   RUN_GFX,
-  RUN_KSD,
   SET_MIN,
   SET_5MIN,
   SET_HOUR
@@ -166,6 +210,8 @@ State state;
 
 uint8_t time_now_h;
 uint8_t time_now_m;
+
+char currentGfx = 0;
 
 /////////////////////////////////////////////////////////////////////////////////////
 // Menu etc.
@@ -385,19 +431,45 @@ void loop() {
     case RUN_GFX:
       if (interruptEventAHappened) {
         interruptEventAHappened = false;
-        state = RUN_KSD;
+        state = SET_MIN;
         break;
       }
-      rainbow(3);
+      if (interruptEventBHappened) {
+        interruptEventBHappened = false;
+        if (++currentGfx > 6) currentGfx = 0;
+      }
+      switch (currentGfx) {
+        case 0:
+          rainbow(3);
+          break;
+        case 1:
+          drawFlasher1();
+          break;
+        case 2:
+          drawFlasher2();
+          break;
+        case 3:
+          drawKSD();
+          break;
+        case 4:
+          drawNoise();
+          break;
+        case 5:
+          drawNoise2();
+          break;
+        case 6:
+          drawNoise3();
+          break;
+      }
+
       break;
 
-    case RUN_KSD:
+    case SET_MIN:
       if (interruptEventAHappened) {
         interruptEventAHappened = false;
         state = RUN_CLOCK;
         break;
       }
-      drawKSD();
       break;
 
   }
