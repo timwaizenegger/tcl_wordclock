@@ -158,7 +158,7 @@ void drawNoise() {
   matrix.fillScreen(0);
 
   //uint16_t color = Wheel(random(0, 255));
-  uint16_t color = matrix.Color(255,255,255);
+  uint16_t color = matrix.Color(255, 255, 255);
   for (int i = 0; i < random(5, 50); i++) {
 
     matrix.drawPixel(random(0, 11), random(0, 10), color);
@@ -171,7 +171,7 @@ void drawNoise2() {
   matrix.fillScreen(0);
 
   //uint16_t color = Wheel(random(0, 255));
-  uint16_t color = matrix.Color(255,255,255);
+  uint16_t color = matrix.Color(255, 255, 255);
   for (int i = 0; i < 20; i++) {
 
     matrix.drawPixel(random(0, 11), random(0, 10), color);
@@ -184,7 +184,7 @@ void drawNoise3() {
   matrix.fillScreen(0);
 
   //uint16_t color = Wheel(random(0, 255));
-  uint16_t color = matrix.Color(255,255,255);
+  uint16_t color = matrix.Color(255, 255, 255);
   for (int i = 0; i < 80; i++) {
 
     matrix.drawPixel(random(0, 11), random(0, 10), color);
@@ -212,6 +212,10 @@ uint8_t time_now_h;
 uint8_t time_now_m;
 
 char currentGfx = 0;
+
+bool blinkMin = false;
+bool blink5Min = false;
+bool blinkHour = false;
 
 /////////////////////////////////////////////////////////////////////////////////////
 // Menu etc.
@@ -283,67 +287,74 @@ void drawFourMinuteDots() {
 }
 
 
+
 void drawTime() {
 
   Serial.println("drawing time: m");
   Serial.println(time_now_m);
   Serial.println(time_now_h);
 
-
   matrix.fillScreen(0);
-  drawFourMinuteDots();
-
 
   drawLineFromArray(l_meta_es, 0);
   drawLineFromArray(l_meta_ist, 0);
 
-  if (isFullHour()) {
-    drawLineFromArray(l_meta_uhr, 0);
+
+  if (!blinkHour) {
+    if (isFullHour()) {
+      drawLineFromArray(l_meta_uhr, 0);
+    }
+
+    if ((1 == correctedHour()) && isFullHour()) {
+      drawLineFromArray(l_h_ein, 2);
+    } else {
+      drawLineFromArray(l_hours[correctedHour() - 1], 2);
+    }
   }
 
-  if ((1 == correctedHour()) && isFullHour()) {
-    drawLineFromArray(l_h_ein, 2);
-  } else {
-    drawLineFromArray(l_hours[correctedHour() - 1], 2);
+  if (!blink5Min) {
+
+    if (isMinuteBetween(4, 25) | isMinuteBetween(34, 40)) {
+      drawLineFromArray(l_min_nach, 1);
+    }
+
+    if (isMinuteBetween(24, 30) | isMinuteBetween(39, 60)) {
+      drawLineFromArray(l_min_vor, 1);
+    }
+
+    if (isMinuteBetween(4, 10) | isMinuteBetween(24, 30) | isMinuteBetween(34, 40) | isMinuteBetween(54, 60)) {
+      drawLineFromArray(l_min_funf, 1);
+    }
+
+    if (isMinuteBetween(9, 15) | isMinuteBetween(49, 55)) {
+      drawLineFromArray(l_min_zehn, 1);
+    }
+
+    if (isMinuteBetween(14, 20) | isMinuteBetween(44, 50)) {
+      drawLineFromArray(l_min_viertel, 1);
+    }
+
+    if (isMinuteBetween(19, 25) | isMinuteBetween(39, 45)) {
+      drawLineFromArray(l_min_zwanzig, 1);
+    }
+
+    if (isMinuteBetween(24, 40)) {
+      drawLineFromArray(l_min_halb, 1);
+    }
+
+    //  Bedingung fuer "dreiviertel", im Moment nicht benutzt
+    //  if (isMinuteBetween(44, 50)) {
+    //    drawLineFromArray(l_min_drei, 1);
+    //  }
+
   }
 
-  if (isMinuteBetween(4, 25) | isMinuteBetween(34, 40)) {
-    drawLineFromArray(l_min_nach, 1);
-  }
-
-  if (isMinuteBetween(24, 30) | isMinuteBetween(39, 60)) {
-    drawLineFromArray(l_min_vor, 1);
-  }
-
-
-  if (isMinuteBetween(4, 10) | isMinuteBetween(24, 30) | isMinuteBetween(34, 40) | isMinuteBetween(54, 60)) {
-    drawLineFromArray(l_min_funf, 1);
-  }
-
-  if (isMinuteBetween(9, 15) | isMinuteBetween(49, 55)) {
-    drawLineFromArray(l_min_zehn, 1);
-  }
-
-  if (isMinuteBetween(14, 20) | isMinuteBetween(44, 50)) {
-    drawLineFromArray(l_min_viertel, 1);
-  }
-
-  if (isMinuteBetween(19, 25) | isMinuteBetween(39, 45)) {
-    drawLineFromArray(l_min_zwanzig, 1);
-  }
-
-  if (isMinuteBetween(24, 40)) {
-    drawLineFromArray(l_min_halb, 1);
-  }
-
-
-  //  Bedingung fuer "dreiviertel", im Moment nicht benutzt
-  //  if (isMinuteBetween(44, 50)) {
-  //    drawLineFromArray(l_min_drei, 1);
-  //  }
-
+  if (!blinkMin) drawFourMinuteDots();
 
   matrix.show();
+
+
+
 }
 
 
@@ -465,11 +476,43 @@ void loop() {
       break;
 
     case SET_MIN:
+      blinkMin = ! blinkMin;
       if (interruptEventAHappened) {
         interruptEventAHappened = false;
+        blinkMin = false;
+        state = SET_5MIN;
+        break;
+      }
+      if (interruptEventBHappened) {
+        interruptEventBHappened = false;
+        if (++currentGfx > 6) currentGfx = 0;
+      }
+      drawTime();
+      delay(100);
+      break;
+
+    case SET_5MIN:
+      blink5Min = ! blink5Min;
+      if (interruptEventAHappened) {
+        interruptEventAHappened = false;
+        blink5Min = false;
+        state = SET_HOUR;
+        break;
+      }
+      drawTime();
+      delay(100);
+      break;
+
+    case SET_HOUR:
+      blinkHour = ! blinkHour;
+      if (interruptEventAHappened) {
+        interruptEventAHappened = false;
+        blinkHour = false;
         state = RUN_CLOCK;
         break;
       }
+      drawTime();
+      delay(100);
       break;
 
   }
