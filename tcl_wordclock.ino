@@ -2,7 +2,6 @@
    WORDCLOCK v2
    Tim Waizenegger (c) 2015
 
-
 */
 
 
@@ -41,9 +40,9 @@ const uint16_t colors[] = {
 /////////////////////////////////////////////////////////////////////////////////////
 
 #define NUMBEROFCLOCKFACECOLORS 7
-uint16_t allClockFaceColors[][4] = {
-  {matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255), matrix.Color(255, 255, 255)},
+uint16_t allClockFaceColors[][4] = {  
   {matrix.Color(200, 100, 0), matrix.Color(200, 150, 0), matrix.Color(150, 200, 0), matrix.Color(100, 200, 0)},
+  {matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255), matrix.Color(255, 255, 255)},
   {matrix.Color(100, 255, 200), matrix.Color(100, 255, 200), matrix.Color(100, 255, 200), matrix.Color(100, 255, 200)},
   {matrix.Color(0, 100, 200), matrix.Color(0, 150, 200), matrix.Color(0, 200, 150), matrix.Color(0, 200, 100)},
   {matrix.Color(255, 100, 255), matrix.Color(200, 100, 255), matrix.Color(200, 100, 255), matrix.Color(255, 100, 255)},
@@ -116,6 +115,21 @@ void rainbow(uint8_t wait) {
   }
 }
 
+void drawPatt1() {
+  matrix.fillScreen(0);
+  matrix.fillRect(0,0,4,10,matrix.Color(255,0,0));
+  matrix.fillRect(4,0,3,10,matrix.Color(255,255,255));
+  matrix.fillRect(7,0,4,10,matrix.Color(0,255,0));
+  matrix.show();
+}
+void drawPatt2() {
+  matrix.fillScreen(0);
+  matrix.fillRect(0,0,11,3,matrix.Color(0,255,0));
+  matrix.fillRect(0,3,11,4,matrix.Color(200,255,0));
+  matrix.fillRect(0,7,11,3,matrix.Color(0,255,0));
+  matrix.show();
+}
+
 
 void drawKSD() {
 
@@ -143,7 +157,7 @@ void drawKSD() {
   matrix.fillScreen(0);
 
 
-  uint16_t color = Wheel(random(0, 255));
+  uint16_t color = matrix.Color(255,255,255);
   for (int i = 0; i < alength; i++) {
 
     matrix.drawPixel(a[i][0], a[i][1], color);
@@ -159,12 +173,12 @@ void drawNoise() {
 
   //uint16_t color = Wheel(random(0, 255));
   uint16_t color = matrix.Color(255, 255, 255);
-  for (int i = 0; i < random(5, 50); i++) {
+  for (int i = 0; i < random(5, 100); i++) {
 
-    matrix.drawPixel(random(0, 11), random(0, 10), color);
+    matrix.drawPixel(random(0, 11), random(0, 11), color);
   }
   matrix.show();
-  delay(random(10, 500));
+  delay(random(5, 400));
 }
 void drawNoise2() {
 
@@ -174,10 +188,10 @@ void drawNoise2() {
   uint16_t color = matrix.Color(255, 255, 255);
   for (int i = 0; i < 20; i++) {
 
-    matrix.drawPixel(random(0, 11), random(0, 10), color);
+    matrix.drawPixel(random(0, 11), random(0, 11), color);
   }
   matrix.show();
-  delay(100);
+  delay(200);
 }
 void drawNoise3() {
 
@@ -187,10 +201,10 @@ void drawNoise3() {
   uint16_t color = matrix.Color(255, 255, 255);
   for (int i = 0; i < 80; i++) {
 
-    matrix.drawPixel(random(0, 11), random(0, 10), color);
+    matrix.drawPixel(random(0, 11), random(0, 11), color);
   }
   matrix.show();
-  delay(50);
+  delay(100);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -222,11 +236,11 @@ bool blinkHour = false;
 /////////////////////////////////////////////////////////////////////////////////////
 void buttonInterruptA() {
   interruptEventAHappened = true;
-  delayMicroseconds(100);
+  delayMicroseconds(5000);
 }
 void buttonInterruptB() {
   interruptEventBHappened = true;
-  delayMicroseconds(100);
+  delayMicroseconds(5000);
 }
 
 
@@ -261,7 +275,8 @@ const uint8_t l_h_acht[]      = {1, 8, 4};
 const uint8_t l_h_zehn[]      = {5, 8, 4};
 const uint8_t l_h_sechs[]     = {1, 9, 5};
 
-const uint8_t* l_hours[]      = {l_h_eins, l_h_zwei, l_h_drei, l_h_vier, l_h_funf, l_h_sechs, l_h_sieben, l_h_acht, l_h_neun, l_h_zehn, l_h_elf, l_h_zwolf};
+  // somehow this works, but it's really ugly. 
+const uint8_t* l_hours[]      = {l_h_eins, l_h_zwei, l_h_drei, l_h_vier, l_h_funf, l_h_sechs, l_h_sieben, l_h_acht, l_h_neun, l_h_zehn, l_h_elf, l_h_zwolf, l_h_eins};
 
 void drawLineFromArray(const uint8_t a[3], const uint8_t c) {
   matrix.drawFastHLine(a[0], a[1], a[2], currentClockFaceColors[c]);
@@ -290,9 +305,10 @@ void drawFourMinuteDots() {
 
 void drawTime() {
 
-  Serial.println("drawing time: m");
-  Serial.println(time_now_m);
-  Serial.println(time_now_h);
+  //Serial.println("drawing time: m");
+  //Serial.println(time_now_m);
+  //Serial.println(time_now_h);
+  //Serial.println(correctedHour() - 1);
 
   matrix.fillScreen(0);
 
@@ -411,7 +427,7 @@ void setup() {
 
 void loop() {
 
-  delay(50); // debounce button
+  //delay(100); // debounce button
 
 
 
@@ -447,29 +463,38 @@ void loop() {
       }
       if (interruptEventBHappened) {
         interruptEventBHappened = false;
-        if (++currentGfx > 6) currentGfx = 0;
+        if (++currentGfx > 9) currentGfx = 0;
       }
       switch (currentGfx) {
         case 0:
-          rainbow(3);
+          rainbow(30);
           break;
         case 1:
-          drawFlasher1();
+          rainbow(500);
           break;
         case 2:
-          drawFlasher2();
+          drawFlasher1();
           break;
         case 3:
-          drawKSD();
+          drawFlasher2();
           break;
         case 4:
-          drawNoise();
+          drawKSD();
           break;
         case 5:
-          drawNoise2();
+          drawNoise();
           break;
         case 6:
+          drawNoise2();
+          break;
+        case 7:
           drawNoise3();
+          break;
+        case 8:
+          drawPatt1();
+          break;
+        case 9:
+          drawPatt2();
           break;
       }
 
