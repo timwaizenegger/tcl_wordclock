@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 // Date and time functions using a RX8025 RTC connected via I2C and Wire lib
 
 #include <Wire.h>

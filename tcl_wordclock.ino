@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 /*
    WORDCLOCK v2
    Tim Waizenegger (c) 2015
