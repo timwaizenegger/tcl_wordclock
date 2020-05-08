@@ -21,6 +21,10 @@
 #include "Sodaq_DS3231.h"
 
 
+/*
+  Buttons bei Anjas Uhr: a,3 b,2
+  Buttons bei nr 3 Uhr: a,3 b,4
+*/
 #define PIN_BUTTON_A 3
 #define PIN_BUTTON_B 2
 volatile bool interruptEventAHappened = false;
@@ -493,6 +497,7 @@ void loop() {
       //drawSplashScreen();
       //rainbow(3);
       drawKSD();
+      delay(500);
       state = RUN_CLOCK;
       break;
     case RUN_CLOCK:
@@ -514,7 +519,8 @@ void loop() {
     case RUN_GFX:
       if (interruptEventAHappened) {
         interruptEventAHappened = false;
-        state = SET_MIN;
+        //state = SET_MIN;
+        state = RUN_CLOCK;
         break;
       }
 
