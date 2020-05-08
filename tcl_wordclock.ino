@@ -4,6 +4,13 @@
    WORDCLOCK v2
    Tim Waizenegger (c) 2015
 
+   last change: 11.10.2018
+     - re-enable effects
+     - full KSD
+
+   last change: 08.05.2020
+     - automatic summer/winter time switch
+     - disable timeadjust
 */
 
 
@@ -11,14 +18,11 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
-#include <Wire.h>
 #include "Sodaq_DS3231.h"
-#ifndef PSTR
-#define PSTR // Make Arduino Due happy
-#endif
 
-#define PIN_BUTTON_A 2
-#define PIN_BUTTON_B 3
+
+#define PIN_BUTTON_A 3
+#define PIN_BUTTON_B 2
 volatile bool interruptEventAHappened = false;
 volatile bool interruptEventBHappened = false;
 /////////////////////////////////////////////////////////////////////////////////////
@@ -36,13 +40,12 @@ const uint16_t colors[] = {
 
 
 
-
 /////////////////////////////////////////////////////////////////////////////////////
 // Colors and Effects
 /////////////////////////////////////////////////////////////////////////////////////
 
 #define NUMBEROFCLOCKFACECOLORS 7
-uint16_t allClockFaceColors[][4] = {  
+uint16_t allClockFaceColors[][4] = {
   {matrix.Color(200, 100, 0), matrix.Color(200, 150, 0), matrix.Color(150, 200, 0), matrix.Color(100, 200, 0)},
   {matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255), matrix.Color(255, 255, 255)},
   {matrix.Color(100, 255, 200), matrix.Color(100, 255, 200), matrix.Color(100, 255, 200), matrix.Color(100, 255, 200)},
@@ -119,23 +122,23 @@ void rainbow(uint8_t wait) {
 
 void drawPatt1() {
   matrix.fillScreen(0);
-  matrix.fillRect(0,0,4,10,matrix.Color(255,0,0));
-  matrix.fillRect(4,0,3,10,matrix.Color(255,255,255));
-  matrix.fillRect(7,0,4,10,matrix.Color(0,255,0));
+  matrix.fillRect(0, 0, 4, 10, matrix.Color(255, 0, 0));
+  matrix.fillRect(4, 0, 3, 10, matrix.Color(255, 255, 255));
+  matrix.fillRect(7, 0, 4, 10, matrix.Color(0, 255, 0));
   matrix.show();
 }
 void drawPatt2() {
   matrix.fillScreen(0);
-  matrix.fillRect(0,0,11,3,matrix.Color(0,255,0));
-  matrix.fillRect(0,3,11,4,matrix.Color(200,255,0));
-  matrix.fillRect(0,7,11,3,matrix.Color(0,255,0));
+  matrix.fillRect(0, 0, 11, 3, matrix.Color(0, 0, 0));
+  matrix.fillRect(0, 3, 11, 4, matrix.Color(0, 255, 0));
+  matrix.fillRect(0, 7, 11, 3, matrix.Color(200, 255, 0));
   matrix.show();
 }
 
 
 void drawKSD() {
 
-  const char alength = 16;
+  const char alength = 17;
   const char a[][2] = {
     {2, 0},
     {6, 0},
@@ -152,14 +155,15 @@ void drawKSD() {
     {9, 8},
     {10, 8},
     {0, 9},
-    {6, 9}
+    {6, 9},
+    {7, 9} // this char only for "full text clocks"
   };
 
 
   matrix.fillScreen(0);
 
 
-  uint16_t color = matrix.Color(255,255,255);
+  uint16_t color = matrix.Color(255, 255, 255);
   for (int i = 0; i < alength; i++) {
 
     matrix.drawPixel(a[i][0], a[i][1], color);
@@ -238,11 +242,11 @@ bool blinkHour = false;
 /////////////////////////////////////////////////////////////////////////////////////
 void buttonInterruptA() {
   interruptEventAHappened = true;
-  delayMicroseconds(5000);
+  delayMicroseconds(300000);
 }
 void buttonInterruptB() {
   interruptEventBHappened = true;
-  delayMicroseconds(5000);
+  delayMicroseconds(300000);
 }
 
 
@@ -277,7 +281,7 @@ const uint8_t l_h_acht[]      = {1, 8, 4};
 const uint8_t l_h_zehn[]      = {5, 8, 4};
 const uint8_t l_h_sechs[]     = {1, 9, 5};
 
-  // somehow this works, but it's really ugly. 
+// somehow this works, but it's really ugly.
 const uint8_t* l_hours[]      = {l_h_eins, l_h_zwei, l_h_drei, l_h_vier, l_h_funf, l_h_sechs, l_h_sieben, l_h_acht, l_h_neun, l_h_zehn, l_h_elf, l_h_zwolf, l_h_eins};
 
 void drawLineFromArray(const uint8_t a[3], const uint8_t c) {
@@ -311,63 +315,68 @@ void drawTime() {
   //Serial.println(time_now_m);
   //Serial.println(time_now_h);
   //Serial.println(correctedHour() - 1);
+  uint16_t bg = 0;
+  if (blinkMin) {
+    bg = matrix.Color(50, 0, 0);
+  }
+  else if (blinkHour) {
+    bg = matrix.Color(0, 50, 0);
+  }
 
-  matrix.fillScreen(0);
+  matrix.fillScreen(bg);
 
   drawLineFromArray(l_meta_es, 0);
   drawLineFromArray(l_meta_ist, 0);
 
-
-  if (!blinkHour) {
-    if (isFullHour()) {
-      drawLineFromArray(l_meta_uhr, 0);
-    }
-
-    if ((1 == correctedHour()) && isFullHour()) {
-      drawLineFromArray(l_h_ein, 2);
-    } else {
-      drawLineFromArray(l_hours[correctedHour() - 1], 2);
-    }
+  if (isFullHour()) {
+    drawLineFromArray(l_meta_uhr, 0);
   }
 
-  if (!blink5Min) {
-
-    if (isMinuteBetween(4, 25) | isMinuteBetween(34, 40)) {
-      drawLineFromArray(l_min_nach, 1);
-    }
-
-    if (isMinuteBetween(24, 30) | isMinuteBetween(39, 60)) {
-      drawLineFromArray(l_min_vor, 1);
-    }
-
-    if (isMinuteBetween(4, 10) | isMinuteBetween(24, 30) | isMinuteBetween(34, 40) | isMinuteBetween(54, 60)) {
-      drawLineFromArray(l_min_funf, 1);
-    }
-
-    if (isMinuteBetween(9, 15) | isMinuteBetween(49, 55)) {
-      drawLineFromArray(l_min_zehn, 1);
-    }
-
-    if (isMinuteBetween(14, 20) | isMinuteBetween(44, 50)) {
-      drawLineFromArray(l_min_viertel, 1);
-    }
-
-    if (isMinuteBetween(19, 25) | isMinuteBetween(39, 45)) {
-      drawLineFromArray(l_min_zwanzig, 1);
-    }
-
-    if (isMinuteBetween(24, 40)) {
-      drawLineFromArray(l_min_halb, 1);
-    }
-
-    //  Bedingung fuer "dreiviertel", im Moment nicht benutzt
-    //  if (isMinuteBetween(44, 50)) {
-    //    drawLineFromArray(l_min_drei, 1);
-    //  }
-
+  if ((1 == correctedHour()) && isFullHour()) {
+    drawLineFromArray(l_h_ein, 2);
+  } else {
+    drawLineFromArray(l_hours[correctedHour() - 1], 2);
   }
 
-  if (!blinkMin) drawFourMinuteDots();
+
+
+
+  if (isMinuteBetween(4, 25) | isMinuteBetween(34, 40)) {
+    drawLineFromArray(l_min_nach, 1);
+  }
+
+  if (isMinuteBetween(24, 30) | isMinuteBetween(39, 60)) {
+    drawLineFromArray(l_min_vor, 1);
+  }
+
+  if (isMinuteBetween(4, 10) | isMinuteBetween(24, 30) | isMinuteBetween(34, 40) | isMinuteBetween(54, 60)) {
+    drawLineFromArray(l_min_funf, 1);
+  }
+
+  if (isMinuteBetween(9, 15) | isMinuteBetween(49, 55)) {
+    drawLineFromArray(l_min_zehn, 1);
+  }
+
+  if (isMinuteBetween(14, 20) | isMinuteBetween(44, 50)) {
+    drawLineFromArray(l_min_viertel, 1);
+  }
+
+  if (isMinuteBetween(19, 25) | isMinuteBetween(39, 45)) {
+    drawLineFromArray(l_min_zwanzig, 1);
+  }
+
+  if (isMinuteBetween(24, 40)) {
+    drawLineFromArray(l_min_halb, 1);
+  }
+
+  //  Bedingung fuer "dreiviertel", im Moment nicht benutzt
+  //  if (isMinuteBetween(44, 50)) {
+  //    drawLineFromArray(l_min_drei, 1);
+  //  }
+
+
+
+  drawFourMinuteDots();
 
   matrix.show();
 
@@ -380,14 +389,53 @@ void drawTime() {
 /////////////////////////////////////////////////////////////////////////////////////
 // TIME
 /////////////////////////////////////////////////////////////////////////////////////
+bool lastSundayInMonthPassed(int numDays, int dow, int dayNum) {
+  // dow == 0 -> sunday
+  int daysRemain = numDays - dayNum;
+  int daysTilNextSunday = 7 - dow;
+  return daysRemain <= daysTilNextSunday;
+}
+
+
 void updateTime() {
-  DateTime now = rtc.now();
+
+  DateTime nowUTC = rtc.now();
+
+  //Serial.println("utcTime time");
+  //Serial.println(nowUTC.month());
+  //Serial.println(nowUTC.date());
+  //Serial.println(nowUTC.hour());
+  //Serial.println(nowUTC.minute());
+
+
+  // correct for CET/CEST
+  // last sunday of march / last sunday of october
+  const int offsetWinter = 1;
+  const int offsetSummer = 2;
+
+  int month = nowUTC.month();
+  int offset = offsetWinter;
+  if ((month > 3 && month < 10)
+    | (month == 3 && lastSundayInMonthPassed(31, nowUTC.dayOfWeek(), nowUTC.date()))
+    | (month == 10 && !lastSundayInMonthPassed(31, nowUTC.dayOfWeek(), nowUTC.date())))
+  {
+    offset = offsetSummer;
+  }
+
+
+  //Serial.println("adding offset hours");
+  //Serial.println(offset);
+
+  int h_tzcorrect = nowUTC.hour() + offset;
+
+
+  // correct hour to 12h format
   int h;
-  h = now.hour() % 12;
+  h = h_tzcorrect % 12;
   if (0 == h) h = 12;
 
   time_now_h = h;
-  time_now_m = now.minute();
+  time_now_m = nowUTC.minute();
 
 
 
@@ -398,6 +446,13 @@ void updateTime() {
   //      time_now_h = 1;
   //    }
   //  }
+}
+
+void plusMinsInRtc(int mins) {
+  DateTime now = rtc.now();
+  uint32_t ts_now = now.getEpoch();
+  uint32_t secs = mins * 60;
+  rtc.setEpoch(ts_now + secs);
 }
 
 
@@ -411,7 +466,7 @@ void setup() {
   state = START;
   matrix.begin();
   matrix.setTextWrap(false);
-  matrix.setBrightness(100);
+  matrix.setBrightness(90);
   matrix.setTextColor(0);
 
   pinMode(PIN_BUTTON_A, INPUT_PULLUP);
@@ -421,7 +476,6 @@ void setup() {
 
   Serial.begin(57600);
 
-  Wire.begin();
   rtc.begin();
   randomSeed(42);
 
@@ -463,6 +517,7 @@ void loop() {
         state = SET_MIN;
         break;
       }
+
       if (interruptEventBHappened) {
         interruptEventBHappened = false;
         if (++currentGfx > 9) currentGfx = 0;
@@ -501,46 +556,53 @@ void loop() {
       }
 
       break;
+      //
+      //    case SET_MIN:
+      //      blinkMin = ! blinkMin;
+      //      if (interruptEventAHappened) {
+      //        interruptEventAHappened = false;
+      //        blinkMin = false;
+      //        state = SET_HOUR;
+      //        break;
+      //      }
+      //      if (interruptEventBHappened) {
+      //        interruptEventBHappened = false;
+      //        plusMinsInRtc(1);
+      //      }
+      //      updateTime();
+      //      drawTime();
+      //      delay(50);
+      //      break;
 
-    case SET_MIN:
-      blinkMin = ! blinkMin;
-      if (interruptEventAHappened) {
-        interruptEventAHappened = false;
-        blinkMin = false;
-        state = SET_5MIN;
-        break;
-      }
-      if (interruptEventBHappened) {
-        interruptEventBHappened = false;
-        if (++currentGfx > 6) currentGfx = 0;
-      }
-      drawTime();
-      delay(100);
-      break;
+      //    case SET_5MIN:
+      //      blink5Min = ! blink5Min;
+      //      if (interruptEventAHappened) {
+      //        interruptEventAHappened = false;
+      //        blink5Min = false;
+      //        state = SET_HOUR;
+      //        break;
+      //      }
+      //      drawTime();
+      //      delay(100);
+      //      break;
 
-    case SET_5MIN:
-      blink5Min = ! blink5Min;
-      if (interruptEventAHappened) {
-        interruptEventAHappened = false;
-        blink5Min = false;
-        state = SET_HOUR;
-        break;
-      }
-      drawTime();
-      delay(100);
-      break;
-
-    case SET_HOUR:
-      blinkHour = ! blinkHour;
-      if (interruptEventAHappened) {
-        interruptEventAHappened = false;
-        blinkHour = false;
-        state = RUN_CLOCK;
-        break;
-      }
-      drawTime();
-      delay(100);
-      break;
+      //    case SET_HOUR:
+      //      blinkHour = ! blinkHour;
+      //      if (interruptEventAHappened) {
+      //        interruptEventAHappened = false;
+      //        blinkHour = false;
+      //        state = RUN_CLOCK;
+      //        break;
+      //      }
+      //
+      //      if (interruptEventBHappened) {
+      //        interruptEventBHappened = false;
+      //        plusMinsInRtc(60);
+      //      }
+      //      updateTime();
+      //      drawTime();
+      //      delay(50);
+      //      break;
 
   }
 
