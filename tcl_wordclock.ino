@@ -245,12 +245,19 @@ bool blinkHour = false;
 // Menu etc.
 /////////////////////////////////////////////////////////////////////////////////////
 void buttonInterruptA() {
-  interruptEventAHappened = true;
-  delayMicroseconds(300000);
+  delay(60);
+  if (digitalRead(PIN_BUTTON_A) == 0) {
+      interruptEventAHappened = true;
+      delay(100);
+  }
+
 }
 void buttonInterruptB() {
-  interruptEventBHappened = true;
-  delayMicroseconds(300000);
+  delay(60);
+  if (digitalRead(PIN_BUTTON_B) == 0) {
+      interruptEventBHappened = true;
+      delay(100);
+  }
 }
 
 
@@ -486,11 +493,6 @@ void setup() {
 }
 
 void loop() {
-
-  //delay(100); // debounce button
-
-
-
 
   switch (state) {
     case START:
